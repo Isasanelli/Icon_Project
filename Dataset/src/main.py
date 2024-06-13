@@ -1,17 +1,31 @@
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
-from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, precision_score, recall_score, f1_score, mean_squared_error
-import joblib
+from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, precision_score, recall_score, \
+    f1_score, mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier
 
 # Caricamento dei dati
 data = pd.read_csv('diabetes_data.csv')
+
+# Visualizzazione del dataset
+print(data.head())
+
+# Stampa delle informazioni sul dataset
+print(data.info())
+
+# Stampa delle statistiche sul dataset
+print(data.describe())
+
+# Stampa delle colonne del dataset
+print(data.columns)
+
+# Visualizza la dimensione del dataset
+print(data.shape)
 
 # Visualizzazione distribuzione dei dati
 plt.figure(figsize=(6, 4))
@@ -40,21 +54,21 @@ data.drop(columns=['DoctorInCharge', 'PatientID'], inplace=True)
 
 # Analisi della variabile target
 plt.figure(figsize=(6, 4))
-sns.countplot(x='Diagnosis', data=data)
+sns.countplot(x='Diagnosis', data=data, palette='Set1',hue='Diagnosis')
 plt.title('Distribuzione della diagnosi')
 plt.xlabel('Diagnosi (0 = No Diabete, 1 = Diabete)')
 plt.ylabel('Conteggio')
 plt.show()
 
 plt.figure(figsize=(6, 4))
-sns.boxplot(x='Diagnosis', y='Age', data=data)
+sns.boxplot(x='Diagnosis', y='Age', data=data, palette='Set2',hue='Diagnosis')
 plt.title('Diagnosi vs Età')
 plt.xlabel('Diagnosi (0 = No Diabete, 1 = Diabete)')
 plt.ylabel('Età')
 plt.show()
 
 plt.figure(figsize=(6, 4))
-sns.boxplot(x='Diagnosis', y='BMI', data=data)
+sns.boxplot(x='Diagnosis', y='BMI', data=data, palette='Set3',hue='Diagnosis')
 plt.title('Diagnosi vs BMI')
 plt.xlabel('Diagnosi (0 = No Diabete, 1 = Diabete)')
 plt.ylabel('BMI')
@@ -136,10 +150,13 @@ def main():
         'FastingBloodSugar': [120],
         'HbA1c': [6.5],
         'CholesterolTotal': [200],
-        # Aggiungere altre colonne necessarie con valori di esempio
+        'FamilyHistoryDiabetes': [1],
+        'GestationalDiabetes': [0],
+        'PolycysticOvarySyndrome': [0],
+        'PreviousPreDiabetes': [1],
+        'Hypertension': [0]
     })
 
-    # Assicurati che le feature corrispondano a quelle utilizzate durante l'addestramento
     missing_cols = set(X.columns) - set(nuovi_dati.columns)
     for c in missing_cols:
         nuovi_dati[c] = 0
