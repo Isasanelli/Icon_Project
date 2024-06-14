@@ -21,11 +21,11 @@ print(data.info())
 # Stampa delle statistiche sul dataset
 print(data.describe())
 
-# Stampa delle colonne del dataset
-print(data.columns)
-
 # Visualizza la dimensione del dataset
 print(data.shape)
+
+# Verifica della presenza di valori mancanti
+data.isnull().sum()
 
 # Visualizzazione distribuzione dei dati
 plt.figure(figsize=(6, 4))
@@ -51,6 +51,8 @@ plt.show()
 
 # Eliminazione delle colonne non necessarie
 data.drop(columns=['DoctorInCharge', 'PatientID'], inplace=True)
+# Visualizzazione del dataset
+data.head(5)
 
 # Analisi della variabile target
 plt.figure(figsize=(6, 4))
@@ -75,7 +77,7 @@ plt.ylabel('BMI')
 plt.show()
 
 # Pairplot delle feature selezionate
-selected_features = ['Age', 'BMI', 'FastingBloodSugar', 'HbA1c', 'CholesterolTotal', 'Diagnosis']
+selected_features = ['Age', 'BMI', 'FastingBloodSugar', 'HbA1c', 'CholesterolTotal', 'Diagnosis', 'FamilyHistoryDiabetes']
 sns.pairplot(data[selected_features], hue='Diagnosis')
 plt.show()
 
@@ -118,22 +120,24 @@ for model_name, model in class_models.items():
     print(f"Report di classificazione per {model_name}:\n")
     print(classification_report(y_test, y_pred))
 
-# Modelli di regressione per previsioni
-reg_models = {
-    'Linear Regression': LinearRegression()
-}
-
-# Addestramento dei modelli di regressione
-for model_name, model in reg_models.items():
-    model.fit(X_train, y_train)
-    print(f"{model_name} trained.")
-
-# Valutazione dei modelli di regressione
-for model_name, model in reg_models.items():
-    y_pred = model.predict(X_test)
-    mse = mean_squared_error(y_test, y_pred)
-    print(f"{model_name} - Mean Squared Error: {mse:.2f}")
-
+# Funzione per la predizione
+def predict_diabetes(age, gender, ethnicity, socioeconomic_status, education_level, bmi, smoking, alcohol_consumption, physical_activity):
+    input_data = pd.DataFrame({
+        'Age': [age],
+        'Gender': [gender],
+        'Ethnicity': [ethnicity],
+        'SocioeconomicStatus': [socioeconomic_status],
+        'EducationLevel': [education_level],
+        'BMI': [bmi],
+        'Smoking': [smoking],
+        'AlcoholConsumption': [alcohol_consumption],
+        'PhysicalActivity': [physical_activity]
+    })
+    prediction = class_models['Random Forest'].predict(input_data)
+    if prediction[0] == 0:
+        return 'No Diabete'
+    else:
+        return 'Diabete'
 # Funzione principale
 def main():
     # Esempio di nuovi dati (sostituire con nuovi dati reali)
@@ -173,7 +177,7 @@ def main():
             'probabilità': pred_proba
         }
 
-    for model_name, model in reg_models.items():
+    for model_name, model in class_models.items():
         pred = model.predict(nuovi_dati_scaled)
         previsioni[model_name] = {
             'previsione': pred
