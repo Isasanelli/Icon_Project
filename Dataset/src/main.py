@@ -7,6 +7,7 @@ from sklearn.metrics import accuracy_score, classification_report, roc_auc_score
     f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from statsmodels.sandbox.regression.sympy_diff import df
 
 # Caricamento dei dati
 try:
@@ -18,6 +19,7 @@ except pd.errors.EmptyDataError:
     print("Il file è vuoto. Fornisci un file CSV con i dati.")
     exit()
 
+
 # Visualizzazione del dataset
 print(data.head())
 print(data.info())
@@ -26,6 +28,33 @@ print(data.shape)
 
 # Verifica della presenza di valori mancanti
 print(data.isnull().sum())
+
+# Visualizza la distribuzione delle feature
+plt.figure(figsize=(6, 4))
+sns.histplot(data['Age'], kde=True, bins=30)
+plt.title('Age Distribution')
+plt.xlabel('Age')
+plt.ylabel('Frequency')
+plt.show()
+
+plt.figure(figsize=(6, 4))
+sns.histplot(data['BMI'], kde=True, bins=30)
+plt.title('BMI Distribution')
+plt.xlabel('BMI')
+plt.ylabel('Frequency')
+plt.show()
+
+plt.figure(figsize=(6,4))
+sns.histplot(data['FastingBloodSugar'], kde=True, bins=30)
+plt.title('Fasting Blood Sugar Distribution')
+plt.xlabel('Fasting Blood Sugar')
+plt.ylabel('Frequency')
+plt.show()
+
+#selected features for pairplot
+selected_features = ['Age', 'BMI', 'FastingBloodSugar', 'HbA1c', 'CholesterolTotal', 'Diagnosis']
+sns.pairplot(data[selected_features], hue='Diagnosis')
+plt.show()
 
 # Feature Engineering con paragoni tra colonne
 data['BMI_Age_Ratio'] = data['BMI'] / data['Age']
