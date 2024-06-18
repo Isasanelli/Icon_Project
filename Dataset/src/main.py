@@ -3,11 +3,9 @@ import pandas as pd
 import seaborn as sns
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, precision_score, recall_score, \
-    f1_score
+from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, precision_score, recall_score, f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from statsmodels.sandbox.regression.sympy_diff import df
 
 # Caricamento dei dati
 try:
@@ -19,7 +17,6 @@ except pd.errors.EmptyDataError:
     print("Il file è vuoto. Fornisci un file CSV con i dati.")
     exit()
 
-
 # Visualizzazione del dataset
 print(data.head())
 print(data.info())
@@ -29,77 +26,76 @@ print(data.shape)
 # Verifica della presenza di valori mancanti
 print(data.isnull().sum())
 
-# Visualizza la distribuzione delle feature
-plt.figure(figsize=(6, 4))
+# Impostazioni di stile per i grafici
+sns.set(style="whitegrid", font_scale=1.2)
+
+# Visualizzazione della distribuzione delle feature
+plt.figure(figsize=(10, 6))
 sns.histplot(data['Age'], kde=True, bins=30)
-plt.title('Age Distribution')
-plt.xlabel('Age')
-plt.ylabel('Frequency')
+plt.title('Distribuzione dell\'Età')
+plt.xlabel('Età')
+plt.ylabel('Frequenza')
 plt.show()
 
-plt.figure(figsize=(6, 4))
+plt.figure(figsize=(10, 6))
 sns.histplot(data['BMI'], kde=True, bins=30)
-plt.title('BMI Distribution')
+plt.title('Distribuzione dell\'Indice di Massa Corporea (BMI)')
 plt.xlabel('BMI')
-plt.ylabel('Frequency')
+plt.ylabel('Frequenza')
 plt.show()
 
-plt.figure(figsize=(6,4))
+plt.figure(figsize=(10, 6))
 sns.histplot(data['FastingBloodSugar'], kde=True, bins=30)
-plt.title('Fasting Blood Sugar Distribution')
-plt.xlabel('Fasting Blood Sugar')
-plt.ylabel('Frequency')
+plt.title('Distribuzione della Glicemia a Digiuno')
+plt.xlabel('Glicemia a Digiuno')
+plt.ylabel('Frequenza')
 plt.show()
 
-#selected features for pairplot
+# Selezione delle feature per il pairplot
 selected_features = ['Age', 'BMI', 'FastingBloodSugar', 'HbA1c', 'CholesterolTotal', 'Diagnosis']
+
+# Pairplot delle feature selezionate
 sns.pairplot(data[selected_features], hue='Diagnosis')
+plt.suptitle('Pairplot delle Feature Selezione', y=1.02)
 plt.show()
 
-# Feature Engineering con paragoni tra colonne
-data['BMI_Age_Ratio'] = data['BMI'] / data['Age']
-data['Sugar_HbA1c_Difference'] = data['FastingBloodSugar'] - data['HbA1c']
-data['Sugar_Cholesterol_Ratio'] = data['FastingBloodSugar'] / data['CholesterolTotal']
-
-# Nuove feature derivate
-data['BMI_Adjusted'] = data['BMI'] / data['Age']
-data['Sugar_HbA1c_Ratio'] = data['FastingBloodSugar'] / data['HbA1c']
-data['Socioeconomic_Index'] = data['SocioeconomicStatus'] + data['EducationLevel']
-data['Social_Behavior_Index'] = data['Smoking'] + data['AlcoholConsumption'] + data['PhysicalActivity']
+# Feature Engineering con rapporti tra colonne
+data['Rapporto_BMI_Età'] = data['BMI'] / data['Age']
+data['Differenza_Glicemia_HbA1c'] = data['FastingBloodSugar'] - data['HbA1c']
+data['Rapporto_Glicemia_Colesterolo'] = data['FastingBloodSugar'] / data['CholesterolTotal']
 
 # Visualizzazione distribuzione delle nuove feature
 plt.figure(figsize=(10, 6))
-sns.histplot(data['BMI_Age_Ratio'], kde=True, bins=30)
-plt.title('Distribuzione del rapporto BMI/Age')
-plt.xlabel('BMI/Age')
+sns.histplot(data['Rapporto_BMI_Età'], kde=True, bins=30)
+plt.title('Distribuzione del Rapporto BMI/Età')
+plt.xlabel('Rapporto BMI/Età')
 plt.ylabel('Frequenza')
 plt.show()
 
 plt.figure(figsize=(10, 6))
-sns.histplot(data['Sugar_HbA1c_Difference'], kde=True, bins=30)
-plt.title('Distribuzione della differenza FastingBloodSugar - HbA1c')
-plt.xlabel('Differenza FastingBloodSugar - HbA1c')
+sns.histplot(data['Differenza_Glicemia_HbA1c'], kde=True, bins=30)
+plt.title('Distribuzione della Differenza Glicemia - HbA1c')
+plt.xlabel('Differenza Glicemia - HbA1c')
 plt.ylabel('Frequenza')
 plt.show()
 
 plt.figure(figsize=(10, 6))
-sns.histplot(data['Sugar_Cholesterol_Ratio'], kde=True, bins=30)
-plt.title('Distribuzione del rapporto FastingBloodSugar / CholesterolTotal')
-plt.xlabel('FastingBloodSugar / CholesterolTotal')
+sns.histplot(data['Rapporto_Glicemia_Colesterolo'], kde=True, bins=30)
+plt.title('Distribuzione del Rapporto Glicemia/Colesterolo')
+plt.xlabel('Rapporto Glicemia/Colesterolo')
 plt.ylabel('Frequenza')
 plt.show()
 
-# Preparazione dei dati
+# Preparazione dei dati per il training del modello
 X = data.drop(columns=['Diagnosis', 'DoctorInCharge', 'PatientID'])  # Escludi colonne non numeriche e non rilevanti
 y = data['Diagnosis']
 
-# Salvare i nomi delle colonne di addestramento per l'uso futuro
-training_columns = X.columns.tolist()
-
+# Standardizzazione delle feature
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
 
+# Split dei dati in training e test set
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
 # Modelli di classificazione
@@ -121,10 +117,8 @@ for model_name, model in class_models.items():
     else:
         roc_auc = roc_auc_score(y_test, model.predict_proba(X_test).max(axis=1))
 
-    print(
-        f"{model_name} - Accuracy: {accuracy:.2f}, Precision: {precision:.2f}, Recall: {recall:.2f}, F1 Score: {f1:.2f}, ROC AUC: {roc_auc:.2f}")
+    print(f"{model_name} - Accuracy: {accuracy:.2f}, Precision: {precision:.2f}, Recall: {recall:.2f}, F1 Score: {f1:.2f}, ROC AUC: {roc_auc:.2f}")
     print(f"Report di classificazione per {model_name}:\n{classification_report(y_test, y_pred)}")
-
 
 # Funzione per garantire la consistenza delle feature
 def ensure_consistency(input_data: pd.DataFrame, training_columns: list) -> pd.DataFrame:
@@ -143,10 +137,9 @@ def ensure_consistency(input_data: pd.DataFrame, training_columns: list) -> pd.D
 
     return input_data
 
-
 # Funzione principale
 def main():
-    # Esempio di nuovi dati (sostituire con nuovi dati reali)
+    # Esempio di nuovi dati (da sostituire con dati reali)
     nuovi_dati = pd.DataFrame({
         'Age': [50],
         'Gender': [1],
@@ -168,17 +161,12 @@ def main():
     })
 
     # Feature Engineering sui nuovi dati
-    nuovi_dati['BMI_Age_Ratio'] = nuovi_dati['BMI'] / nuovi_dati['Age']
-    nuovi_dati['Sugar_HbA1c_Difference'] = nuovi_dati['FastingBloodSugar'] - nuovi_dati['HbA1c']
-    nuovi_dati['Sugar_Cholesterol_Ratio'] = nuovi_dati['FastingBloodSugar'] / nuovi_dati['CholesterolTotal']
-    nuovi_dati['BMI_Adjusted'] = nuovi_dati['BMI'] / nuovi_dati['Age']
-    nuovi_dati['Sugar_HbA1c_Ratio'] = nuovi_dati['FastingBloodSugar'] / nuovi_dati['HbA1c']
-    nuovi_dati['Socioeconomic_Index'] = nuovi_dati['SocioeconomicStatus'] + nuovi_dati['EducationLevel']
-    nuovi_dati['Social_Behavior_Index'] = nuovi_dati['Smoking'] + nuovi_dati['AlcoholConsumption'] + nuovi_dati[
-        'PhysicalActivity']
+    nuovi_dati['Rapporto_BMI_Età'] = nuovi_dati['BMI'] / nuovi_dati['Age']
+    nuovi_dati['Differenza_Glicemia_HbA1c'] = nuovi_dati['FastingBloodSugar'] - nuovi_dati['HbA1c']
+    nuovi_dati['Rapporto_Glicemia_Colesterolo'] = nuovi_dati['FastingBloodSugar'] / nuovi_dati['CholesterolTotal']
 
     # Garantire la consistenza delle feature
-    nuovi_dati = ensure_consistency(nuovi_dati, training_columns)
+    nuovi_dati = ensure_consistency(nuovi_dati, X.columns)
 
     # Predizioni sui nuovi dati
     nuovi_dati_scaled = pd.DataFrame(scaler.transform(nuovi_dati), columns=X.columns)
@@ -192,7 +180,6 @@ def main():
         }
 
     print(previsioni)
-
 
 if __name__ == "__main__":
     main()
