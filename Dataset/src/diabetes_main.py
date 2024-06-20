@@ -14,6 +14,11 @@ def main():
     # Caricamento dei dati
     data = load_data('diabetes_data.csv')
 
+    # Visualizzazione delle informazioni e statistiche
+    data.head()
+    data.info()
+    data.describe()
+
     # Ingegnerizzazione delle caratteristiche
     data = feature_engineering(data)
 
