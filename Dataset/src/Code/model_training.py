@@ -1,114 +1,116 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split, cross_val_score, KFold
-from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neural_network import MLPClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import (
-    accuracy_score, classification_report, roc_auc_score,
-    precision_score, recall_score, f1_score, confusion_matrix, roc_curve
-)
 import logging
-import sys
-import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.model_selection import cross_val_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.naive_bayes import GaussianNB
 
-# Aggiungere il percorso del modulo alla variabile di percorso di sistema
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+def plot_metrics(model_metrics):
+    models = list(model_metrics.keys())
+    accuracies = [model_metrics[model]['accuracy'] for model in models]
+    precisions = [model_metrics[model]['precision'] for model in models]
+    recalls = [model_metrics[model]['recall'] for model in models]
+    f1_scores = [model_metrics[model]['f1'] for model in models]
+    roc_aucs = [model_metrics[model]['roc_auc'] for model in models]
 
-from Code.visualization import plot_model_performance
+    x = range(len(models))
 
-# Impostazione del logger per registrare gli eventi
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+    plt.figure(figsize=(12, 8))
 
-def prepare_data(data):
-    X = data.drop(columns=["Diagnosis", "DoctorInCharge", "PatientID"])
-    y = data["Diagnosis"]
-    training_columns = X.columns.tolist()
+    plt.subplot(2, 3, 1)
+    plt.bar(x, accuracies)
+    plt.xticks(x, models, rotation='vertical')
+    plt.ylabel('Accuracy')
+    plt.title('Model Accuracy')
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+    plt.subplot(2, 3, 2)
+    plt.bar(x, precisions)
+    plt.xticks(x, models, rotation='vertical')
+    plt.ylabel('Precision')
+    plt.title('Model Precision')
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=0.2, random_state=42
-    )
-    return X_train, X_test, y_train, y_test, scaler, training_columns
+    plt.subplot(2, 3, 3)
+    plt.bar(x, recalls)
+    plt.xticks(x, models, rotation='vertical')
+    plt.ylabel('Recall')
+    plt.title('Model Recall')
 
-def train_and_evaluate_models(X_train, y_train, X_test, y_test):
-    class_models = {
-        "K-Nearest Neighbors": KNeighborsClassifier(),
-        "Naive Bayes": GaussianNB(),
-        "Logistic Regression": LogisticRegression(),
-        "Decision Tree": DecisionTreeClassifier(),
-        "Support Vector Machine": SVC(probability=True)
+    plt.subplot(2, 3, 4)
+    plt.bar(x, f1_scores)
+    plt.xticks(x, models, rotation='vertical')
+    plt.ylabel('F1 Score')
+    plt.title('Model F1 Score')
+
+    plt.subplot(2, 3, 5)
+    plt.bar(x, roc_aucs)
+    plt.xticks(x, models, rotation='vertical')
+    plt.ylabel('ROC AUC')
+    plt.title('Model ROC AUC')
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_predictions(y_test, y_pred, model_name):
+    cm = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(6, 6))
+    plt.title(f'Confusion Matrix for {model_name}')
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['No Diabetes', 'Diabetes'], yticklabels=['No Diabetes', 'Diabetes'])
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.show()
+
+def train_and_evaluate_model(model, model_name, X_train, y_train, X_test, y_test):
+    logging.info(f"Training {model_name}...")
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    roc_auc = roc_auc_score(y_test, y_pred)
+
+    logging.info(f"{model_name} - Accuracy: {accuracy:.2f}, Precision: {precision:.2f}, Recall: {recall:.2f}, F1 Score: {f1:.2f}, ROC AUC: {roc_auc:.2f}")
+
+    model_metrics = {
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1,
+        'roc_auc': roc_auc
     }
 
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    plot_predictions(y_test, y_pred, model_name)
 
-    for model_name, model in class_models.items():
-        cv_scores = cross_val_score(model, X_train, y_train, cv=kf, scoring='accuracy')
-        mean_cv_score = cv_scores.mean()
-        logging.info(f"Cross-Validation Scores for {model_name}: {cv_scores}")
-        logging.info(f"Mean CV Score for {model_name}: {mean_cv_score:.2f}")
-        model.fit(X_train, y_train)
+    return model_metrics
 
-        y_pred = model.predict(X_test)
-        y_proba = model.predict_proba(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred)
-        recall = recall_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred)
-        roc_auc = roc_auc_score(y_test, y_proba[:, 1])
+def prepare_data(X, y):
+    from sklearn.model_selection import train_test_split
+    return train_test_split(X, y, test_size=0.2, random_state=42)
 
-        logging.info(
-            f"{model_name} - Accuracy: {accuracy:.2f}, Precision: {precision:.2f}, Recall: {recall:.2f}, F1 Score: {f1:.2f}, ROC AUC: {roc_auc:.2f}"
-        )
-        logging.info(f"Classification Report for {model_name}:\n{classification_report(y_test, y_pred)}")
+def train_knn(X_train, y_train, X_test, y_test):
+    model = KNeighborsClassifier()
+    return train_and_evaluate_model(model, "K-Nearest Neighbors", X_train, y_train, X_test, y_test)
 
-        plot_model_performance(model_name, cv_scores, y_test, y_pred, y_proba)
+def train_decision_tree(X_train, y_train, X_test, y_test):
+    model = DecisionTreeClassifier()
+    return train_and_evaluate_model(model, "Decision Tree", X_train, y_train, X_test, y_test)
 
+def train_random_forest(X_train, y_train, X_test, y_test):
+    model = RandomForestClassifier()
+    return train_and_evaluate_model(model, "Random Forest", X_train, y_train, X_test, y_test)
 
-def train_neural_network(X_train, y_train, X_test, y_test):
-    mlp_model = MLPClassifier( hidden_layer_sizes=(50, 50), max_iter=500, random_state=42, learning_rate_init=0.001,
-                               solver='adam' )  # Modificato il solver e aggiunto learning_rate_init
+def train_adaboost(X_train, y_train, X_test, y_test):
+    model = AdaBoostClassifier(algorithm='SAMME')
+    return train_and_evaluate_model(model, "AdaBoost", X_train, y_train, X_test, y_test)
 
-    # Aggiungi punteggi di cross-validazione
-    kf = KFold( n_splits=5, shuffle=True, random_state=42 )
-    cv_scores = cross_val_score( mlp_model, X_train, y_train, cv=kf, scoring='accuracy' )
+def train_gradient_boosting(X_train, y_train, X_test, y_test):
+    model = GradientBoostingClassifier()
+    return train_and_evaluate_model(model, "Gradient Boosting", X_train, y_train, X_test, y_test)
 
-    mlp_model.fit( X_train, y_train )
-
-    y_pred = mlp_model.predict( X_test )
-    y_proba = mlp_model.predict_proba( X_test )
-    accuracy = accuracy_score( y_test, y_pred )
-    precision = precision_score( y_test, y_pred )
-    recall = recall_score( y_test, y_pred )
-    f1 = f1_score( y_test, y_pred )
-    roc_auc = roc_auc_score( y_test, y_proba[:, 1] )
-
-    logging.info(
-        f"MLP Classifier - Accuracy: {accuracy:.2f}, Precision: {precision:.2f}, Recall: {recall:.2f}, F1 Score: {f1:.2f}, ROC AUC: {roc_auc:.2f}"
-    )
-    logging.info( f"Classification Report for MLP Classifier:\n{classification_report( y_test, y_pred )}" )
-
-    plot_model_performance( "MLP Classifier", cv_scores, y_test, y_pred, y_proba )
-
-    return mlp_model
-
-
-def ensure_consistency(input_data, training_columns):
-    missing_cols = set(training_columns) - set(input_data.columns)
-    extra_cols = set(input_data.columns) - set(training_columns)
-
-    for col in missing_cols:
-        input_data[col] = 0
-
-    input_data = input_data.drop(columns=extra_cols)
-    input_data = input_data[training_columns]
-
-    return input_data
+def train_naive_bayes(X_train, y_train, X_test, y_test):
+    model = GaussianNB()
+    return train_and_evaluate_model(model, "Naive Bayes", X_train, y_train, X_test, y_test)

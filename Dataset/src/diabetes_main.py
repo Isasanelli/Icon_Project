@@ -1,71 +1,50 @@
-import sys
-import os
-import pandas as pd
-
-# Aggiungere il percorso del modulo alla variabile di percorso di sistema
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+import logging
 from Code.data_loader import load_data
-from Code.feature_engineering import feature_engineering
-from Code.visualization import visualize_distributions
-from Code.model_training import prepare_data, train_and_evaluate_models, train_neural_network, ensure_consistency
+from Code.feature_engineering import drop_irrelevant_features, feature_engineering
+from Code.model_training import prepare_data, train_knn, train_decision_tree, train_random_forest, train_adaboost, \
+    train_gradient_boosting, train_naive_bayes, plot_metrics
+from Code.clustering import perform_clustering, evaluate_clusters
+from Code.knowledge_Base import create_knowledge_base, query_knowledge_base
+from Code.data_understanding import explore_data
+
 
 def main():
-    # Caricamento dei dati
-    data = load_data('diabetes_data.csv')
+    logging.basicConfig( level=logging.INFO )
 
-    # Visualizzazione delle informazioni e statistiche
-    data.head()
-    data.info()
-    data.describe()
+    # Carica i dati
+    data = load_data( 'diabetes_data.csv' )
+    explore_data( data )
 
-    # Ingegnerizzazione delle caratteristiche
-    data = feature_engineering(data)
+    # Prepara i dati
+    features_to_drop = ['PatientID', 'DoctorInCharge']
+    data = drop_irrelevant_features( data, features_to_drop )
+    data = feature_engineering( data )
 
-    # Preparazione dei dati per l'addestramento
-    X_train, X_test, y_train, y_test, scaler, training_columns = prepare_data(data)
+    X = data.drop( 'Diagnosis', axis=1 )
+    y = data['Diagnosis']
 
-    # Addestramento e valutazione dei modelli supervisionati
-    train_and_evaluate_models(X_train, y_train, X_test, y_test)
+    X_train, X_test, y_train, y_test = prepare_data( X, y )
 
-    # Addestramento di un modello MLP (Multi-layer Perceptron)
-    mlp_model = train_neural_network(X_train, y_train, X_test, y_test)
+    # Addestra i modelli
+    model_metrics = {}
+    model_metrics['K-Nearest Neighbors'] = train_knn( X_train, y_train, X_test, y_test )
+    model_metrics['Decision Tree'] = train_decision_tree( X_train, y_train, X_test, y_test )
+    model_metrics['Random Forest'] = train_random_forest( X_train, y_train, X_test, y_test )
+    model_metrics['AdaBoost'] = train_adaboost( X_train, y_train, X_test, y_test )
+    model_metrics['Gradient Boosting'] = train_gradient_boosting( X_train, y_train, X_test, y_test )
+    model_metrics['Naive Bayes'] = train_naive_bayes( X_train, y_train, X_test, y_test )
 
-    # Esempio di nuovi dati e valutazione con MLP
-    new_data = pd.DataFrame({
-        'Age': [50],
-        'Gender': [1],
-        'Ethnicity': [0],
-        'SocioeconomicStatus': [1],
-        'EducationLevel': [2],
-        'BMI': [30],
-        'Smoking': [0],
-        'AlcoholConsumption': [5],
-        'PhysicalActivity': [4],
-        'FastingBloodSugar': [120],
-        'HbA1c': [6.5],
-        'CholesterolTotal': [200],
-        'FamilyHistoryDiabetes': [1],
-        'PolycysticOvarySyndrome': [0],
-        'PreviousPreDiabetes': [1],
-        'Hypertension': [0]
-    })
+    # Plot metrics
+    plot_metrics( model_metrics )
 
-    # Ingegnerizzazione delle caratteristiche per i nuovi dati
-    new_data = feature_engineering(new_data)
+    # Clustering
+    clusters = perform_clustering( X )
+    evaluate_clusters( clusters, X )
 
-    # Assicurare la consistenza dei nuovi dati
-    new_data = ensure_consistency(new_data, training_columns)
+    # Knowledge Base
+    g = create_knowledge_base( data )
+    query_knowledge_base( g )
 
-    # Standardizzazione dei nuovi dati
-    new_data_scaled = scaler.transform(new_data)
-    new_data_scaled = pd.DataFrame(new_data_scaled, columns=new_data.columns)
-
-    # Predizione con il modello MLP
-    predictions = mlp_model.predict(new_data_scaled)
-
-    # Visualizzazione delle distribuzioni e nuove caratteristiche
-    visualize_distributions(data, predictions)
 
 if __name__ == "__main__":
     main()
